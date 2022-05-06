@@ -1,0 +1,5 @@
+# IDE stuff
+./autonet-arista.iml
+.idea/
+# Eggs
+/autonet_arista.egg-info/
