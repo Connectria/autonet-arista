@@ -49,6 +49,6 @@ setuptools.setup(
     test_suite='pytest',
     exclude_package_data={'': ['*/tests/*']},
     entry_points={
-        'autonet.drivers': ['eos = autonet_arista.eos.eos_driver:AristaDriver']
+        'autonet_ng.drivers': ['eos = autonet_arista.eos.eos_driver:AristaDriver']
     }
 )
