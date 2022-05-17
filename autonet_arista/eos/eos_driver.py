@@ -1,3 +1,5 @@
+import logging
+
 import pyeapi
 
 from autonet_ng.core import exceptions as exc
@@ -23,9 +25,13 @@ class AristaDriver(DeviceDriver):
         return tuple([r['result'] for r in results])
 
     def _exec_config(self, commands):
-        self._eapi.configure_session()
-        self._eapi.config(commands)
-        self._eapi.commit()
+        try:
+            self._eapi.configure_session()
+            self._eapi.config(commands)
+            self._eapi.commit()
+        except Exception as e:
+            logging.exception(e)
+            self._eapi.abort()
         return
 
     def _interface_exists(self, interface_name) -> bool:
@@ -68,8 +74,8 @@ class AristaDriver(DeviceDriver):
         if self._interface_exists(request_data.name):
             raise exc.ObjectExists
 
-        interface_commands = if_task.generate_interface_commands(request_data)
-        self._exec_config(interface_commands)
+        commands = if_task.generate_interface_commands(request_data)
+        self._exec_config(commands)
 
         return self._interface_read(request_data.name)
 
@@ -77,7 +83,14 @@ class AristaDriver(DeviceDriver):
         if not self._interface_exists(request_data.name):
             raise exc.ObjectNotFound
 
-        interface_commands = if_task.generate_interface_commands(request_data, update=update)
-        self._exec_config(interface_commands)
+        commands = if_task.generate_interface_commands(request_data, update=update)
+        self._exec_config(commands)
 
         return self._interface_read(request_data.name)
+
+    def _interface_delete(self, request_data: str):
+        if not self._interface_exists(request_data):
+            raise exc.ObjectNotFound
+
+        commands = if_task.generate_delete_commands(interface_name=request_data)
+        self._exec_config(commands)

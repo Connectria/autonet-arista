@@ -408,3 +408,16 @@ def generate_interface_commands(interface: an_if.Interface,
         commands += generate_routed_mode_commands(interface, update)
 
     return commands
+
+
+def generate_delete_commands(interface_name: str):
+    """
+    Generates the commands required to reset an interface to its default
+    state, ore delete it altogether if it is a virtual interface.
+    :param interface_name:
+    :return:
+    """
+    if is_virtual(interface_name):
+        return [f'no interface {interface_name}']
+    else:
+        return [f'default interface {interface_name}']

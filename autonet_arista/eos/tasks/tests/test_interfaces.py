@@ -440,3 +440,13 @@ def test_generate_route_mode_commands(test_interface_object, update, expected):
 def test_generate_interface_commands(test_interface_object, update, expected):
     assert if_tasks.generate_interface_commands(
         test_interface_object, update) == expected
+
+
+@pytest.mark.parametrize('interface_name, expected',[
+    ('Loopback1', ['no interface Loopback1']),
+    ('Ethernet5', ['default interface Ethernet5']),
+    ('Po5', ['no interface Po5']),
+    ('Vl22', ['no interface Vl22'])
+])
+def test_generate_delete_commands(interface_name, expected):
+    assert if_tasks.generate_delete_commands(interface_name) == expected
