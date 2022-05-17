@@ -48,7 +48,7 @@ class AristaDriver(DeviceDriver):
                 return False
             raise exc.AutonetException("Could not determine if interface exists.")
 
-    def _interface_read(self, request_data=None):
+    def _interface_read(self, request_data: str = None) -> an_if.Interface:
         interfaces = []
         show_interfaces_command = 'show interfaces'
         if request_data:
