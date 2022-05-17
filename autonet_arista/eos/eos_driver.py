@@ -6,7 +6,6 @@ from autonet_ng.core.objects import interfaces as an_if
 from autonet_ng.drivers.driver import DeviceDriver
 from pyeapi.client import CommandError
 
-from autonet_arista.eos import util
 from autonet_arista.eos.tasks import interface as if_task
 from autonet_arista.eos.const import PHYSICAL_INTERFACE_TYPES, VIRTUAL_INTERFACE_TYPES
 
@@ -25,7 +24,7 @@ class AristaDriver(DeviceDriver):
 
     def _exec_config(self, commands):
         self._eapi.configure_session()
-        results = self._eapi.config(commands)
+        self._eapi.config(commands)
         self._eapi.commit()
         return
 
@@ -36,7 +35,7 @@ class AristaDriver(DeviceDriver):
         :return:
         """
         try:
-            result = self._exec_admin(f'show interfaces {interface_name}')
+            self._exec_admin(f'show interfaces {interface_name}')
             return True
         except CommandError as e:
             if e.command_error == 'Interface does not exist':
@@ -57,8 +56,8 @@ class AristaDriver(DeviceDriver):
                     or 'Management' in eos_interface['name']:
                 # Skip the interfaces we don't care about.
                 continue
-            interfaces.append(util.get_interface_object(eos_interface,
-                                                        *interface_data[1:]))
+            interfaces.append(if_task.get_interface_object(
+                eos_interface, *interface_data[1:]))
 
         if request_data and len(interfaces) != 1:
             raise exc.ObjectNotFound()
