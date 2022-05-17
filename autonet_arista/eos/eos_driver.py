@@ -72,3 +72,12 @@ class AristaDriver(DeviceDriver):
         self._exec_config(interface_commands)
 
         return self._interface_read(request_data.name)
+
+    def _interface_update(self, request_data: an_if.Interface, update) -> an_if.Interface:
+        if not self._interface_exists(request_data.name):
+            raise exc.ObjectNotFound
+
+        interface_commands = if_task.generate_interface_commands(request_data, update=update)
+        self._exec_config(interface_commands)
+
+        return self._interface_read(request_data.name)
