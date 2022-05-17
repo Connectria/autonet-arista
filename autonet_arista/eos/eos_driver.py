@@ -2,9 +2,12 @@ import pyeapi
 
 from autonet_ng.core import exceptions as exc
 from autonet_ng.core.device import AutonetDevice
+from autonet_ng.core.objects import interfaces as an_if
 from autonet_ng.drivers.driver import DeviceDriver
+from pyeapi.client import CommandError
 
 from autonet_arista.eos import util
+from autonet_arista.eos.tasks import interface as if_task
 from autonet_arista.eos.const import PHYSICAL_INTERFACE_TYPES, VIRTUAL_INTERFACE_TYPES
 
 
@@ -19,6 +22,26 @@ class AristaDriver(DeviceDriver):
     def _exec_admin(self, *commands):
         results = self._eapi.enable(*commands)
         return tuple([r['result'] for r in results])
+
+    def _exec_config(self, commands):
+        self._eapi.configure_session()
+        results = self._eapi.config(commands)
+        self._eapi.commit()
+        return
+
+    def _interface_exists(self, interface_name) -> bool:
+        """
+        Determine if interface already exists.
+        :param interface_name:
+        :return:
+        """
+        try:
+            result = self._exec_admin(f'show interfaces {interface_name}')
+            return True
+        except CommandError as e:
+            if e.command_error == 'Interface does not exist':
+                return False
+            raise exc.AutonetException("Could not determine if interface exists.")
 
     def _interface_read(self, request_data=None):
         interfaces = []
@@ -42,3 +65,11 @@ class AristaDriver(DeviceDriver):
         else:
             return interfaces[0] if request_data else interfaces
 
+    def _interface_create(self, request_data: an_if.Interface) -> an_if.Interface:
+        if self._interface_exists(request_data.name):
+            raise exc.ObjectExists
+
+        interface_commands = if_task.generate_interface_commands(request_data)
+        self._exec_config(interface_commands)
+
+        return self._interface_read(request_data.name)
