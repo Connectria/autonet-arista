@@ -465,3 +465,115 @@ def test_interface(request, test_routed_interface, test_bridge_interface):
     if request.param == 'bridged':
         return test_bridge_interface
     return None
+
+
+@pytest.fixture
+def test_show_int_vxlan():
+    # This is a partial datastructure compared to what the device
+    # would actually return. 
+    return {
+        'interfaces': {
+            'Vxlan1': {
+                'srcIpAddr': '192.168.0.101',
+                'vrfToVniMap': {
+                    'red': 20000,
+                    'blue': 20001
+                },
+                'vlanToVniMap': {
+                    '4093': {
+                        'source': 'evpn',
+                        'vni': 101001
+                    },
+                    '4092': {
+                        'source': 'evpn',
+                        'vni': 11000
+                    },
+                    '4091': {
+                        'source': 'evpn',
+                        'vni': 111001
+                    },
+                    '72': {
+                        'source': '',
+                        'vni': 70002
+                    },
+                    '71': {
+                        'source': '',
+                        'vni': 70001
+                    },
+                    '4094': {
+                        'source': 'evpn',
+                        'vni': 70000
+                    }
+                }
+            }
+        }
+    }
+
+
+@pytest.fixture
+def test_bgp_text_config():
+    return """
+router bgp 65002
+   router-id 198.18.0.101
+   neighbor overlay peer group
+   neighbor overlay remote-as 65001
+   neighbor overlay update-source Loopback0
+   neighbor overlay allowas-in 1
+   neighbor overlay ebgp-multihop 2
+   neighbor overlay send-community extended
+   neighbor overlay maximum-routes 12000
+   neighbor underlay peer group
+   neighbor underlay remote-as 65001
+   neighbor underlay allowas-in 1
+   neighbor underlay maximum-routes 12000
+   neighbor 198.18.0.1 peer group overlay
+   neighbor 198.18.0.2 peer group overlay
+   neighbor 198.18.0.3 peer group overlay
+   neighbor 198.18.1.0 peer group underlay
+   neighbor 198.18.2.0 peer group underlay
+   neighbor 198.18.3.0 peer group underlay
+   !
+   vlan 71
+      rd 198.18.0.101:71
+      route-target import 65002:70001
+      route-target export 65002:70001
+      route-target export 65002:10000
+      redistribute learned
+   !
+   vlan 72
+      rd 198.18.0.101:72
+      route-target import 65002:70002
+      route-target export 65002:70002
+      redistribute learned
+   !
+   address-family evpn
+      neighbor overlay activate
+      no neighbor underlay activate
+   !
+   address-family ipv4
+      no neighbor overlay activate
+      network 192.168.0.101/32
+   !
+   vrf red
+      rd 198.18.0.101:4094
+      route-target import 65002:20000
+      route-target export 65002:20000
+      route-target both 65002:255555
+      neighbor 198.19.2.1 remote-as 65408
+      neighbor 198.19.2.1 remove-private-as all replace-as
+      neighbor 198.19.2.1 maximum-routes 12000
+      redistribute connected
+      redistribute static
+      redistribute attached-host
+   vrf blue
+      rd 198.18.0.101:4091
+      route-target import 65002:20001
+      route-target export 65002:20001
+      router-id 198.18.0.101
+      neighbor 198.19.3.1 remote-as 65499
+      neighbor 198.19.3.1 remove-private-as all replace-as
+      neighbor 198.19.3.1 maximum-routes 12000
+      redistribute connected
+      redistribute static
+      redistribute attached-host
+    """
