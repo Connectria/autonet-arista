@@ -9,6 +9,7 @@ from autonet_ng.drivers.driver import DeviceDriver
 from pyeapi.client import CommandError
 
 from autonet_arista.eos.tasks import interface as if_task
+from autonet_arista.eos.tasks import vxlan as vxlan_task
 from autonet_arista.eos.const import PHYSICAL_INTERFACE_TYPES, VIRTUAL_INTERFACE_TYPES
 
 
@@ -94,3 +95,17 @@ class AristaDriver(DeviceDriver):
 
         commands = if_task.generate_delete_commands(interface_name=request_data)
         self._exec_config(commands)
+
+    def _tunnels_vxlan_read(self, request_data: str = None):
+        commands = ('show interfaces vxlan1', 'show running-config section bgp')
+        show_int_vxlan, show_bgp_config = self._exec_admin(commands)
+        vnid = int(request_data) if request_data else None
+        result = vxlan_task.get_vxlans(
+            show_int_vxlan,
+            show_bgp_config['output'],
+            vnid=vnid)
+
+        if request_data and len(result) != 1:
+            raise exc.ObjectNotFound
+        else:
+            return result
