@@ -9,9 +9,10 @@ def parse_bgp_evpn_vxlan_config(text_config: str) -> dict:
     .. code-block::
         {
             'asn': 65500,
-            'router-id': 198.18.0.1
+            'rid': 198.18.0.1
             'vrfs': {
                 'vrf-name': {
+                    'rid': 198.18.0.1
                     'import_targets': [],
                     'export_targets': [],
                     'route-distinguisher': 198.18.0.1:2
