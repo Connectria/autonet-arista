@@ -1,11 +1,6 @@
 import logging
 import re
 
-from autonet_ng.core.objects import interfaces as an_if
-from typing import Union
-
-from autonet_arista.eos.const import DESCRIPTION_TAG, VIRTUAL_INTERFACE_TYPES
-
 
 def get_v6_mask_length(addr: str) -> str:
     """
