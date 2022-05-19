@@ -1,3 +1,6 @@
+from typing import Union
+
+from autonet_ng.core import exceptions as exc
 from autonet_ng.core.objects import vxlan as an_vxlan
 
 from autonet_arista.eos.tasks import common as common_task
@@ -54,3 +57,168 @@ def get_vxlans(show_int_vxlan: dict, show_bgp_config: str,
         ))
 
     return vxlans
+
+
+def generate_l2_vxlan_create_commands(vxlan: an_vxlan.VXLAN) -> [str]:
+    """
+    Generate the commands required to create a l2 vxlan as
+    appropriate.
+    :param vxlan: A `VXLAN` object.
+    :return:
+    """
+    return [
+        'interface vxlan1',
+        f'vxlan vlan {vxlan.bound_object_id} vni {vxlan.id}'
+    ]
+
+
+def generate_l3_vxlan_create_commands(vxlan: an_vxlan.VXLAN) -> [str]:
+    """
+    Generate the commands required to create a l3 vxlan as
+    appropriate.
+    :param vxlan: A `VXLAN` object.
+    :return:
+    """
+    return [
+        'interface vxlan1',
+        f'vxlan vrf {vxlan.bound_object_id} vni {vxlan.id}'
+    ]
+
+
+def generate_vxlan_commands(vxlan: an_vxlan.VXLAN) -> [str]:
+    """
+    Generate the commands required to create given vxlan as
+    appropriate.
+    :param vxlan: A `VXLAN` object.
+    :return:
+    """
+    if vxlan.layer == 2:
+        return generate_l2_vxlan_create_commands(vxlan)
+    if vxlan.layer == 3:
+        return generate_l3_vxlan_create_commands(vxlan)
+
+
+def generate_rt_commands(vxlan: an_vxlan.VXLAN, bgp_asn: Union[str, int]) -> ([str], [str]):
+    """
+    Generate the import and export commands for a given VXLAN object.  BGP ASN
+    is used for the generation of auto-derived RTs.  The import and export
+    commands are returned as a tuple in respective order in case only one
+    direction is needed.
+    :param vxlan: A `VXLAN` object.
+    :param bgp_asn: The BGP ASN to use for auto-derived RTs.
+    :return:
+    """
+    auto_rt = f'{bgp_asn}:{vxlan.id}'
+    import_targets = vxlan.import_targets
+    export_targets = vxlan.export_targets
+
+    if 'auto' in import_targets:
+        import_targets = [rt for rt in import_targets if rt != 'auto']
+        import_targets.append(auto_rt)
+    if 'auto' in export_targets:
+        export_targets = [rt for rt in export_targets if rt != 'auto']
+        export_targets.append(auto_rt)
+
+    return (
+        [f'route-target import {rt}' for rt in import_targets],
+        [f'route-target export {rt}' for rt in export_targets]
+    )
+
+
+def generate_l2_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
+                                    bgp_config: dict) -> [str]:
+    """
+    Generate the commands to advertise an L2 VNI + VLAN in EVPN.
+    :param vxlan: A `VXLAN` object.
+    :param show_int_vxlan: The output of 'show interfaces vxlan1'.
+    :param bgp_config: The parsed output of the textual BGP config.
+    :return:
+    """
+    if vxlan.route_distinguisher == 'auto':
+        vxlan.route_distinguisher = f'{bgp_config["rid"]}:{vxlan.bound_object_id}'
+    import_rt_cmds, export_rt_cmds = generate_rt_commands(vxlan, bgp_config['asn'])
+    return [
+               f'router bgp {bgp_config["asn"]}',
+               f'vlan {vxlan.bound_object_id}',
+               'redistribute learned',
+               f'rd {vxlan.route_distinguisher}'
+           ] + import_rt_cmds + export_rt_cmds
+
+
+def generate_l3_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
+                                    bgp_config: dict) -> [str]:
+    """
+    Generate the commands to advertise an L3 VNI + VRF in EVPN.
+    :param vxlan: A `VXLAN` object.
+    :param show_int_vxlan: The output of 'show interfaces vxlan1'.
+    :param bgp_config: The parsed output of the textual BGP config.
+    :return:
+    """
+    if vxlan.route_distinguisher == 'auto':
+        auto_vlan = None
+        vni_map = show_int_vxlan['interfaces']['Vxlan1']['vlanToVniMap']
+        for vlan_id in vni_map:
+            if vni_map[vlan_id]['vni'] == vxlan.id:
+                auto_vlan = vlan_id
+                break
+        if not auto_vlan:
+            raise exc.AutonetException('Could not auto-derive RD')
+        vxlan.route_distinguisher = f'{bgp_config["rid"]}:{auto_vlan}'
+    import_rt_cmds, export_rt_cmds = generate_rt_commands(vxlan, bgp_config['asn'])
+    return [
+               f'router bgp {bgp_config["asn"]}',
+               f'vrf {vxlan.bound_object_id}',
+               'redistribute connected',
+               'redistribute attached-host',
+               'redistribute static',
+               f'rd {vxlan.route_distinguisher}'
+           ] + import_rt_cmds + export_rt_cmds
+
+
+def generate_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
+                                 show_bgp_config: str) -> [str]:
+    """
+    Generate BGP_EVPN commands to advertise a given VNI.
+    :param vxlan: A `VXLAN` object.
+    :param show_int_vxlan: Output from "show interfaces vxlan"
+    :param show_bgp_config: Textural BGP configuration.
+    :return:
+    """
+    bgp_config = common_task.parse_bgp_evpn_vxlan_config(show_bgp_config)
+    if vxlan.layer == 2:
+        return generate_l2_vxlan_evpn_commands(
+            vxlan, show_int_vxlan, bgp_config)
+    if vxlan.layer == 3:
+        return generate_l3_vxlan_evpn_commands(
+            vxlan, show_int_vxlan, bgp_config)
+
+
+def generate_vxlan_delete_commands(vxlan: an_vxlan.VXLAN, show_bgp_config: str) -> [str]:
+    """
+    Generates a set of commands to remove a VXLAN tunnel from a device.
+    For L2 VNIs, we will remove the vlan from the BGP EVPN configuration.
+    For L3 VNIs, we will remove only the tunnel definition and
+    redistribution of attached hosts, but not any of the BGP configuration
+    as it's shared with other address families. Subsequent calls to remove
+    the VRF itself would need to be made and are generally expected in
+    teardown use cases.
+    :param vxlan: A `VXLAN` object.
+    :param show_bgp_config: The active textual BGP configuration.
+    :return:
+    """
+    bgp_config = common_task.parse_bgp_evpn_vxlan_config(show_bgp_config)
+    if vxlan.layer == 2:
+        return [
+            'interface vxlan1',
+            f'no vxlan vlan {vxlan.bound_object_id} vni {vxlan.id}',
+            f'router bgp {bgp_config["asn"]}',
+            f'no vlan {vxlan.bound_object_id}',
+        ]
+    if vxlan.layer == 3:
+        return [
+            'interface vxlan1',
+            f'no vxlan vrf {vxlan.bound_object_id} vni {vxlan.id}',
+            f'router bgp {bgp_config["asn"]}',
+            f'vrf {vxlan.bound_object_id}',
+            'no redistribute attached-host'
+        ]

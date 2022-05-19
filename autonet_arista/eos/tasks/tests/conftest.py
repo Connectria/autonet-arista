@@ -482,7 +482,7 @@ def test_show_int_vxlan():
                 'vlanToVniMap': {
                     '4093': {
                         'source': 'evpn',
-                        'vni': 101001
+                        'vni': 20001
                     },
                     '4092': {
                         'source': 'evpn',
@@ -502,7 +502,7 @@ def test_show_int_vxlan():
                     },
                     '4094': {
                         'source': 'evpn',
-                        'vni': 70000
+                        'vni': 20000
                     }
                 }
             }
@@ -577,3 +577,36 @@ router bgp 65002
       redistribute static
       redistribute attached-host
     """
+
+
+@pytest.fixture
+def test_bgp_config():
+    return {
+        'asn': '65002',
+        'rid': '198.18.0.101',
+        'vlans': {
+            '71': {
+                'export_targets': ['65002:70001', '65002:10000'],
+                'import_targets': ['65002:70001'],
+                'rd': '198.18.0.101:71'
+            },
+            '72': {
+                'export_targets': ['65002:70002'],
+                'import_targets': ['65002:70002'],
+                'rd': '198.18.0.101:72'
+            }
+        },
+        'vrfs': {
+            'blue': {
+                'export_targets': ['65002:20001'],
+                'import_targets': ['65002:20001'],
+                'rd': '198.18.0.101:4091',
+                'rid': '198.18.0.101'
+            },
+            'red': {
+                'export_targets': ['65002:20000', '65002:255555'],
+                'import_targets': ['65002:20000', '65002:255555'],
+                'rd': '198.18.0.101:4094'
+            }
+        }
+    }

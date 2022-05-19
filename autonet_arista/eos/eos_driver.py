@@ -1,10 +1,12 @@
 import logging
-
 import pyeapi
+
+from typing import Union
 
 from autonet_ng.core import exceptions as exc
 from autonet_ng.core.device import AutonetDevice
 from autonet_ng.core.objects import interfaces as an_if
+from autonet_ng.core.objects import vxlan as an_vxlan
 from autonet_ng.drivers.driver import DeviceDriver
 from pyeapi.client import CommandError
 
@@ -36,11 +38,6 @@ class AristaDriver(DeviceDriver):
         return
 
     def _interface_exists(self, interface_name) -> bool:
-        """
-        Determine if interface already exists.
-        :param interface_name:
-        :return:
-        """
         try:
             self._exec_admin(f'show interfaces {interface_name}')
             return True
@@ -48,6 +45,15 @@ class AristaDriver(DeviceDriver):
             if e.command_error == 'Interface does not exist':
                 return False
             raise exc.AutonetException("Could not determine if interface exists.")
+
+    def _vxlan_exists(self, vnid: Union[int, str]) -> Union[an_vxlan.VXLAN, bool]:
+        """
+        Returns the VXLAN object it exists, otherwise returns False.
+        """
+        try:
+            return self._tunnels_vxlan_read(vnid)[0]
+        except exc.ObjectNotFound:
+            return False
 
     def _interface_read(self, request_data: str = None) -> an_if.Interface:
         interfaces = []
@@ -109,3 +115,29 @@ class AristaDriver(DeviceDriver):
             raise exc.ObjectNotFound
         else:
             return result
+
+    def _tunnels_vxlan_create(self, request_data: an_vxlan.VXLAN) -> an_vxlan.VXLAN:
+        if self._vxlan_exists(request_data.id):
+            raise exc.ObjectExists
+
+        # Config needs to be done in two stages.  First the tunnel itself is
+        # created, which will trigger the device to allocate resources for it.
+        # Once those resources are allocated, they are discovered, and then
+        # used for the auto-generation of RD and RT.
+        commands = vxlan_task.generate_vxlan_commands(vxlan=request_data)
+        self._exec_config(commands)
+        # Stage one completed.  Now resource allocations are discovered.
+        commands = ('show interfaces vxlan1', 'show running-config section bgp')
+        show_int_vxlan, show_bgp_config = self._exec_admin(commands)
+        commands = vxlan_task.generate_vxlan_evpn_commands(
+            request_data, show_int_vxlan, show_bgp_config['output'])
+        self._exec_config(commands)
+        return self._tunnels_vxlan_read(str(request_data.id))
+
+    def _tunnels_vxlan_delete(self, request_data: str):
+        vxlan = self._vxlan_exists(request_data)
+        if not vxlan:
+            raise exc.ObjectNotFound()
+        show_bgp_config, = self._exec_admin('show running-config section bgp')
+        commands = vxlan_task.generate_vxlan_delete_commands(vxlan, show_bgp_config['output'])
+        self._exec_config(commands)
