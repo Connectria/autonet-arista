@@ -57,6 +57,15 @@ class AristaDriver(DeviceDriver):
         except exc.ObjectNotFound:
             return False
 
+    def _vrf_exists(self, vrf: str) -> Union[an_vrf.VRF, bool]:
+        """
+        Returns a VRF object, if it exists, otherwise returns False.
+        """
+        try:
+            return self._vrf_read(vrf)[0]
+        except exc.ObjectNotFound:
+            return False
+
     def _interface_read(self, request_data: str = None) -> an_if.Interface:
         interfaces = []
         show_interfaces_command = 'show interfaces'
@@ -155,5 +164,20 @@ class AristaDriver(DeviceDriver):
             raise exc.ObjectNotFound()
         return results
 
-    def _vrf_create(self, request_data: an_vrf.VRF):
-        pass
+    def _vrf_create(self, request_data: an_vrf.VRF) -> an_vrf.VRF:
+        if self._vrf_exists(request_data.name):
+            raise exc.ObjectExists()
+        else:
+            show_bgp_config, = self._exec_admin('show running-config section bgp')
+            commands = vrf_task.generate_create_vrf_commands(request_data, show_bgp_config['output'])
+            self._exec_config(commands)
+            return self._vrf_read(request_data.name)[0]
+
+    def _vrf_delete(self, request_data: str) -> None:
+        vrf = self._vrf_exists(request_data)
+        if not vrf:
+            raise exc.ObjectNotFound()
+        else:
+            show_bgp_config, = self._exec_admin('show running-config section bgp')
+            commands = vrf_task.generate_delete_vrf_commands(vrf, show_bgp_config['output'])
+            self._exec_config(commands)

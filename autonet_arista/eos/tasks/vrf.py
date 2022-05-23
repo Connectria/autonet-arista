@@ -51,3 +51,56 @@ def get_vrfs(show_vrf: dict, bgp_text_config: str,
         ))
 
     return vrfs
+
+
+def generate_create_vrf_commands(vrf: an_vrf.VRF, show_bgp_config: str):
+    """
+    Generate the commands needed to create a VRF.
+    :param vrf: A `VRF` object.
+    :param show_bgp_config: The textual BGP configuration.
+    :return:
+    """
+    commands = [
+        f'vrf instance {vrf.name}'
+    ]
+    active_afis = []
+    if vrf.ipv4:
+        commands.append(f'ip routing vrf {vrf.name}')
+        active_afis.append('vpn-ipv4')
+    if vrf.ipv6:
+        commands.append(f'ipv6 unicast-routing vrf {vrf.name}')
+        active_afis.append('vpn-ipv6')
+    # If there's no RD there's no point in RTs either, so we
+    # ignore the RTs if RD is not set.
+    if vrf.route_distinguisher:
+        bgp_config = common_task.parse_bgp_vpn_config(show_bgp_config)
+        commands += [
+            f'router bgp {bgp_config["asn"]}',
+            f'vrf {vrf.name}',
+            f'rd {vrf.route_distinguisher}'
+        ]
+        # And now RTs.
+        for direction in ['import', 'export']:
+            for afi in active_afis:
+                rt_set = f'{direction}_targets'
+                commands += [f'route-target {direction} {afi} {rt}'
+                             for rt in getattr(vrf, rt_set)]
+
+    return commands
+
+
+def generate_delete_vrf_commands(vrf: an_vrf.VRF, show_bgp_config: str):
+    """
+    Generate the commands needed to delete a VRF.
+    :param vrf: A `VRF` object.
+    :param show_bgp_config: The textual BGP configuration.
+    :return:
+    """
+    bgp_config = common_task.parse_bgp_vpn_config(show_bgp_config)
+    return [
+        f'no ip routing vrf {vrf.name}',
+        f'no ipv6 unicast-routing vrf {vrf.name}',
+        f'no vrf instance {vrf.name}',
+        f'router bgp {bgp_config["asn"]}',
+        f'no vrf {vrf.name}',
+    ]
