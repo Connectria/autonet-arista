@@ -468,6 +468,38 @@ def test_interface(request, test_routed_interface, test_bridge_interface):
 
 
 @pytest.fixture
+def test_show_vrf():
+    # This is a partial datastructure compared to what the device
+    # would actually return.
+    return {
+        'vrfs': {
+            'blue': {
+                'routeDistinguisher': '198.18.0.101:4091',
+                'protocols': {
+                    'ipv4': {
+                        'routingState': 'up'
+                    },
+                    'ipv6': {
+                        'routingState': 'down'
+                    }
+                }
+            },
+            'red': {
+                'routeDistinguisher': '198.18.0.101:4094',
+                'protocols': {
+                    'ipv4': {
+                        'routingState': 'up'
+                    },
+                    'ipv6': {
+                        'routingState': 'up'
+                    }
+                }
+            }
+        }
+    }
+
+
+@pytest.fixture
 def test_show_int_vxlan():
     # This is a partial datastructure compared to what the device
     # would actually return. 

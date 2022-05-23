@@ -6,11 +6,13 @@ from typing import Union
 from autonet_ng.core import exceptions as exc
 from autonet_ng.core.device import AutonetDevice
 from autonet_ng.core.objects import interfaces as an_if
+from autonet_ng.core.objects import vrf as an_vrf
 from autonet_ng.core.objects import vxlan as an_vxlan
 from autonet_ng.drivers.driver import DeviceDriver
 from pyeapi.client import CommandError
 
 from autonet_arista.eos.tasks import interface as if_task
+from autonet_arista.eos.tasks import vrf as vrf_task
 from autonet_arista.eos.tasks import vxlan as vxlan_task
 from autonet_arista.eos.const import PHYSICAL_INTERFACE_TYPES, VIRTUAL_INTERFACE_TYPES
 
@@ -141,3 +143,17 @@ class AristaDriver(DeviceDriver):
         show_bgp_config, = self._exec_admin('show running-config section bgp')
         commands = vxlan_task.generate_vxlan_delete_commands(vxlan, show_bgp_config['output'])
         self._exec_config(commands)
+
+    def _vrf_read(self, request_data: str = None):
+        commands = ['show vrf', 'show running-config section bgp']
+        show_vrf, show_bgp_config = self._exec_admin(commands)
+        results = vrf_task.get_vrfs(
+                show_vrf,
+                show_bgp_config['output'],
+                vrf=request_data)
+        if request_data and len(results) != 1:
+            raise exc.ObjectNotFound()
+        return results
+
+    def _vrf_create(self, request_data: an_vrf.VRF):
+        pass
