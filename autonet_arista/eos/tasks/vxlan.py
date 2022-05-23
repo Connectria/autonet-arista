@@ -1,5 +1,3 @@
-from typing import Union
-
 from autonet_ng.core import exceptions as exc
 from autonet_ng.core.objects import vxlan as an_vxlan
 
@@ -98,33 +96,6 @@ def generate_vxlan_commands(vxlan: an_vxlan.VXLAN) -> [str]:
         return generate_l3_vxlan_create_commands(vxlan)
 
 
-def generate_rt_commands(vxlan: an_vxlan.VXLAN, bgp_asn: Union[str, int]) -> ([str], [str]):
-    """
-    Generate the import and export commands for a given VXLAN object.  BGP ASN
-    is used for the generation of auto-derived RTs.  The import and export
-    commands are returned as a tuple in respective order in case only one
-    direction is needed.
-    :param vxlan: A `VXLAN` object.
-    :param bgp_asn: The BGP ASN to use for auto-derived RTs.
-    :return:
-    """
-    auto_rt = f'{bgp_asn}:{vxlan.id}'
-    import_targets = vxlan.import_targets
-    export_targets = vxlan.export_targets
-
-    if 'auto' in import_targets:
-        import_targets = [rt for rt in import_targets if rt != 'auto']
-        import_targets.append(auto_rt)
-    if 'auto' in export_targets:
-        export_targets = [rt for rt in export_targets if rt != 'auto']
-        export_targets.append(auto_rt)
-
-    return (
-        [f'route-target import {rt}' for rt in import_targets],
-        [f'route-target export {rt}' for rt in export_targets]
-    )
-
-
 def generate_l2_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
                                     bgp_config: dict) -> [str]:
     """
@@ -136,7 +107,7 @@ def generate_l2_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
     """
     if vxlan.route_distinguisher == 'auto':
         vxlan.route_distinguisher = f'{bgp_config["rid"]}:{vxlan.bound_object_id}'
-    import_rt_cmds, export_rt_cmds = generate_rt_commands(vxlan, bgp_config['asn'])
+    import_rt_cmds, export_rt_cmds = common_task.generate_rt_commands(vxlan, bgp_config['asn'])
     return [
                f'router bgp {bgp_config["asn"]}',
                f'vlan {vxlan.bound_object_id}',
@@ -164,7 +135,7 @@ def generate_l3_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
         if not auto_vlan:
             raise exc.AutonetException('Could not auto-derive RD')
         vxlan.route_distinguisher = f'{bgp_config["rid"]}:{auto_vlan}'
-    import_rt_cmds, export_rt_cmds = generate_rt_commands(vxlan, bgp_config['asn'])
+    import_rt_cmds, export_rt_cmds = common_task.generate_rt_commands(vxlan, bgp_config['asn'])
     return [
                f'router bgp {bgp_config["asn"]}',
                f'vrf {vxlan.bound_object_id}',

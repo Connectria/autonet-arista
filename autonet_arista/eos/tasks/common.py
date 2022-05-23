@@ -1,5 +1,8 @@
 import re
 
+from autonet_ng.core.objects import vxlan as an_vxlan
+from autonet_ng.core.objects import vrf as an_vrf
+from typing import Union
 
 def parse_bgp_evpn_vxlan_config(text_config: str) -> dict:
     """
@@ -67,3 +70,58 @@ def parse_bgp_evpn_vxlan_config(text_config: str) -> dict:
             node['rd'] = match.group('rd')
 
     return bgp_config
+
+
+def generate_rt_commands(conf_obj: Union[an_vxlan.VXLAN, an_vrf.VRF],
+                         bgp_asn: Union[str, int] = None) -> ([str], [str]):
+    """
+    Generate the import and export commands for a list of RTs.  BGP ASN
+    is used for the generation of auto-derived RTs and is only needed if 'auto'
+    is present in the list of RTs.  Auto RT generation is for VXLAN only.
+    :param conf_obj: The configuration object containing RT information in its
+           attributes named `import_targets` and `export_targets`. May be VXLAN,
+           VRF, or possibly others.
+    :param bgp_asn: The BGP ASN to use for auto-derived RTs.
+    :return:
+    """
+    valid_conf_obj = (an_vxlan.VXLAN, an_vrf.VRF)
+    if not isinstance(conf_obj, valid_conf_obj):
+        raise Exception(f"`conf_obj` must be one of {valid_conf_obj}")
+    afis = []
+    if isinstance(conf_obj, an_vxlan.VXLAN):
+        afis.append('evpn')
+    if isinstance(conf_obj, an_vrf.VRF):
+        afis = []
+        if conf_obj.ipv4:
+            afis.append('ipv4')
+        if conf_obj.ipv6:
+            afis.append('ipv6')
+    import_targets = conf_obj.import_targets or []
+    export_targets = conf_obj.export_targets or []
+
+    # Do some input validation.
+    if 'auto' in import_targets or 'auto' in export_targets:
+        auto = True
+    else:
+        auto = False
+    if auto and not bgp_asn:
+        raise Exception('"bgp_asn" must be set when RT value is "auto".')
+    if auto and not isinstance(conf_obj, an_vxlan.VXLAN):
+        raise Exception(f'Auto RT is only supported with {an_vxlan.VXLAN} objects.')
+
+    auto_rt = f'{bgp_asn}:{conf_obj.id}'
+    if 'auto' in import_targets:
+        import_targets = [rt for rt in import_targets if rt != 'auto']
+        import_targets.append(auto_rt)
+    if 'auto' in export_targets:
+        export_targets = [rt for rt in export_targets if rt != 'auto']
+        export_targets.append(auto_rt)
+
+    import_commands = []
+    export_commands = []
+    for afi in afis:
+        import_commands += [f'route-target import {afi} {rt}'
+                            for rt in import_targets]
+        export_commands += [f'route-target export {afi} {rt}'
+                            for rt in export_targets]
+    return import_commands, export_commands
