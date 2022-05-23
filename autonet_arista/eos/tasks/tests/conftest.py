@@ -556,8 +556,8 @@ router bgp 65002
    !
    vrf red
       rd 198.18.0.101:4094
-      route-target import 65002:20000
-      route-target export 65002:20000
+      route-target import evpn 65002:20000
+      route-target export evpn 65002:20000
       route-target both 65002:255555
       neighbor 198.19.2.1 remote-as 65408
       neighbor 198.19.2.1 remove-private-as all replace-as
@@ -567,8 +567,10 @@ router bgp 65002
       redistribute attached-host
    vrf blue
       rd 198.18.0.101:4091
-      route-target import 65002:20001
-      route-target export 65002:20001
+      route-target import evpn 65002:20001
+      route-target export evpn 65002:20001
+      route-target import vpn-ipv4 65002:20001
+      route-target export vpn-ipv4 65002:20001
       router-id 198.18.0.101
       neighbor 198.19.3.1 remote-as 65499
       neighbor 198.19.3.1 remove-private-as all replace-as
@@ -598,14 +600,30 @@ def test_bgp_config():
         },
         'vrfs': {
             'blue': {
-                'export_targets': ['65002:20001'],
-                'import_targets': ['65002:20001'],
+                'export_targets': {
+                    'evpn': ['65002:20001'],
+                    'vpn-ipv4': ['65002:20001'],
+                    'vpn-ipv6': [],
+                },
+                'import_targets': {
+                    'evpn': ['65002:20001'],
+                    'vpn-ipv4': ['65002:20001'],
+                    'vpn-ipv6': [],
+                },
                 'rd': '198.18.0.101:4091',
                 'rid': '198.18.0.101'
             },
             'red': {
-                'export_targets': ['65002:20000', '65002:255555'],
-                'import_targets': ['65002:20000', '65002:255555'],
+                'export_targets': {
+                    'evpn': ['65002:20000', '65002:255555'],
+                    'vpn-ipv4': ['65002:255555'],
+                    'vpn-ipv6': ['65002:255555'],
+                },
+                'import_targets': {
+                    'evpn': ['65002:20000', '65002:255555'],
+                    'vpn-ipv4': ['65002:255555'],
+                    'vpn-ipv6': ['65002:255555']
+                },
                 'rd': '198.18.0.101:4094'
             }
         }

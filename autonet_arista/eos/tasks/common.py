@@ -4,7 +4,8 @@ from autonet_ng.core.objects import vxlan as an_vxlan
 from autonet_ng.core.objects import vrf as an_vrf
 from typing import Union
 
-def parse_bgp_evpn_vxlan_config(text_config: str) -> dict:
+
+def parse_bgp_vpn_config(text_config: str) -> dict:
     """
     Parses the textual BGP configuration block into a structured
     dictionary.
@@ -16,8 +17,16 @@ def parse_bgp_evpn_vxlan_config(text_config: str) -> dict:
             'vrfs': {
                 'vrf-name': {
                     'rid': 198.18.0.1
-                    'import_targets': [],
-                    'export_targets': [],
+                    'import_targets': {
+                        'evpn': [],
+                        'vpn-ipv4: [],
+                        'vpn-ipv6: [],
+                    },
+                    'export_targets': {
+                        'evpn': [],
+                        'vpn-ipv4: [],
+                        'vpn-ipv6: [],
+                    },
                     'route-distinguisher': 198.18.0.1:2
                 }
             },
@@ -39,20 +48,22 @@ def parse_bgp_evpn_vxlan_config(text_config: str) -> dict:
     rid_regex = r'router-id (?P<rid>[0-9\.]*)$'
     vlan_regex = r'vlan (?P<vlan_id>[0-9]*$)'
     vrf_regex = r'vrf (?P<vrf_name>[\S]*$)'
-    rt_regex = r'route-target (?P<direction>[\S]*) (?P<rt>[\d\.]*\:[\d]*)$'
+    rt_regex = r'route-target (?P<direction>[\S]*) ?(?P<afi>evpn|vpn-ipv4|vpn-ipv6|) (?P<rt>[\d\.]*\:[\d]*)$'
     rd_regex = r'rd (?P<rd>[\d\.]*\:[\d]*)$'
 
     config_lines = text_config.split('\n')
     bgp_config = {}
-    node = None
-    sub_node = None
+    node = {}
+    context = None
     for config_line in config_lines:
         if match := re.search(asn_regex, config_line):
             bgp_config['asn'] = match.group('asn')
         if match := re.search(vlan_regex, config_line):
             node = bgp_config.setdefault('vlans', {}).setdefault(match.group('vlan_id'), {})
+            context = 'vlan'
         if match := re.search(vrf_regex, config_line):
             node = bgp_config.setdefault('vrfs', {}).setdefault(match.group('vrf_name'), {})
+            context = 'vrf'
         # Once we have a node we can parse out the things that may belong to it.
         if match := re.search(rid_regex, config_line):
             if node:
@@ -60,12 +71,36 @@ def parse_bgp_evpn_vxlan_config(text_config: str) -> dict:
             else:
                 bgp_config['rid'] = match.group('rid')
         if match := re.search(rt_regex, config_line):
-            if match.group('direction') == 'both':
-                node.setdefault('import_targets', []).append(match.group('rt'))
-                node.setdefault('export_targets', []).append(match.group('rt'))
-            else:
-                targets = f"{match.group('direction')}_targets"
-                node.setdefault(targets, []).append(match.group('rt'))
+            # when we match up on an RT we place it only in the AFI for which
+            # it is defined.  If no AFI exists in the config, then it's explicitly
+            # all AFIs.
+            if context == 'vrf':
+                all_afis = ['evpn', 'vpn-ipv4', 'vpn-ipv6']
+                # Initialize the node data structure if not already done.
+
+                if 'import_targets' not in node or not isinstance(node['import_targets'], dict):
+                    node['import_targets'] = {'evpn': [], 'vpn-ipv4': [], 'vpn-ipv6': []}
+                if 'export_targets' not in node or not isinstance(node['export_targets'], dict):
+                    node['export_targets'] = {'evpn': [], 'vpn-ipv4': [], 'vpn-ipv6': []}
+                if match.group('afi'):
+                    afis = [match.group('afi')]
+                else:
+                    afis = all_afis
+                for afi in afis:
+                    if match.group('direction') == 'both':
+                        node.setdefault('import_targets', {}).setdefault(afi, []).append(match.group('rt'))
+                        node.setdefault('export_targets', {}).setdefault(afi, []).append(match.group('rt'))
+                    else:
+                        targets = f"{match.group('direction')}_targets"
+                        node.setdefault(targets, {}).setdefault(afi, []).append(match.group('rt'))
+            elif context == 'vlan':
+                if match.group('direction') == 'both':
+                    node.setdefault('import_targets', []).append(match.group('rt'))
+                    node.setdefault('export_targets', []).append(match.group('rt'))
+                else:
+                    targets = f"{match.group('direction')}_targets"
+                    node.setdefault(targets, []).append(match.group('rt'))
+
         if match := re.search(rd_regex, config_line):
             node['rd'] = match.group('rd')
 

@@ -18,7 +18,7 @@ def get_vxlans(show_int_vxlan: dict, show_bgp_config: str,
     vtep_address = show_int_vxlan['interfaces']['Vxlan1']['srcIpAddr']
     l2_vnis = show_int_vxlan['interfaces']['Vxlan1']['vlanToVniMap']
     l3_vnis = show_int_vxlan['interfaces']['Vxlan1']['vrfToVniMap']
-    bgp_config = common_task.parse_bgp_evpn_vxlan_config(show_bgp_config)
+    bgp_config = common_task.parse_bgp_vpn_config(show_bgp_config)
     # parse l2 VNIS
     for vlan_id, l2_vni in l2_vnis.items():
         # If a VNID is requested, we check to see if this is it, otherwise
@@ -48,8 +48,8 @@ def get_vxlans(show_int_vxlan: dict, show_bgp_config: str,
             id=int(l3_vni),
             source_address=vtep_address,
             layer=3,
-            export_targets=bgp_config_node.get('export_targets', []),
-            import_targets=bgp_config_node.get('import_targets', []),
+            export_targets=bgp_config_node.get('export_targets', {}).get('evpn', []),
+            import_targets=bgp_config_node.get('import_targets', {}).get('evpn', []),
             route_distinguisher=bgp_config_node.get('rd', None),
             bound_object_id=vrf_name
         ))
@@ -155,7 +155,7 @@ def generate_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
     :param show_bgp_config: Textural BGP configuration.
     :return:
     """
-    bgp_config = common_task.parse_bgp_evpn_vxlan_config(show_bgp_config)
+    bgp_config = common_task.parse_bgp_vpn_config(show_bgp_config)
     if vxlan.layer == 2:
         return generate_l2_vxlan_evpn_commands(
             vxlan, show_int_vxlan, bgp_config)
@@ -177,7 +177,7 @@ def generate_vxlan_delete_commands(vxlan: an_vxlan.VXLAN, show_bgp_config: str) 
     :param show_bgp_config: The active textual BGP configuration.
     :return:
     """
-    bgp_config = common_task.parse_bgp_evpn_vxlan_config(show_bgp_config)
+    bgp_config = common_task.parse_bgp_vpn_config(show_bgp_config)
     if vxlan.layer == 2:
         return [
             'interface vxlan1',
