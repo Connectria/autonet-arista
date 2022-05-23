@@ -43,7 +43,8 @@ def parse_bgp_vpn_config(text_config: str) -> dict:
     :param text_config: The text configuration block.
     :return:
     """
-
+    # TODO: (kvondersaar) This function is hilariously cumbersome and
+    #  needs to be split into more discrete parts.
     asn_regex = r'router bgp (?P<asn>[0-9]*$)'
     rid_regex = r'router-id (?P<rid>[0-9\.]*)$'
     vlan_regex = r'vlan (?P<vlan_id>[0-9]*$)'
