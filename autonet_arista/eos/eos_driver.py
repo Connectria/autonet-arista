@@ -1,7 +1,7 @@
 import logging
 import pyeapi
 
-from typing import Union
+from typing import List, Union
 
 from autonet_ng.core import exceptions as exc
 from autonet_ng.core.device import AutonetDevice
@@ -66,7 +66,7 @@ class AristaDriver(DeviceDriver):
         except exc.ObjectNotFound:
             return False
 
-    def _interface_read(self, request_data: str = None) -> an_if.Interface:
+    def _interface_read(self, request_data: str = None) -> Union[List[an_if.Interface], an_if.Interface]:
         interfaces = []
         show_interfaces_command = 'show interfaces'
         if request_data:
@@ -113,19 +113,21 @@ class AristaDriver(DeviceDriver):
         commands = if_task.generate_delete_commands(interface_name=request_data)
         self._exec_config(commands)
 
-    def _tunnels_vxlan_read(self, request_data: str = None):
+    def _tunnels_vxlan_read(self, request_data: str = None) -> Union[List[an_vxlan.VXLAN], an_vxlan.VXLAN]:
         commands = ('show interfaces vxlan1', 'show running-config section bgp')
         show_int_vxlan, show_bgp_config = self._exec_admin(commands)
         vnid = int(request_data) if request_data else None
-        result = vxlan_task.get_vxlans(
+        results = vxlan_task.get_vxlans(
             show_int_vxlan,
             show_bgp_config['output'],
             vnid=vnid)
 
-        if request_data and len(result) != 1:
-            raise exc.ObjectNotFound
+        if request_data and len(results) != 1:
+            raise exc.ObjectNotFound()
+        elif request_data and len(results) == 1:
+            return results[0]
         else:
-            return result
+            return results
 
     def _tunnels_vxlan_create(self, request_data: an_vxlan.VXLAN) -> an_vxlan.VXLAN:
         if self._vxlan_exists(request_data.id):
@@ -153,7 +155,7 @@ class AristaDriver(DeviceDriver):
         commands = vxlan_task.generate_vxlan_delete_commands(vxlan, show_bgp_config['output'])
         self._exec_config(commands)
 
-    def _vrf_read(self, request_data: str = None):
+    def _vrf_read(self, request_data: str = None) -> Union[List[an_vrf.VRF], an_vrf.VRF]:
         commands = ['show vrf', 'show running-config section bgp']
         show_vrf, show_bgp_config = self._exec_admin(commands)
         results = vrf_task.get_vrfs(
@@ -162,7 +164,10 @@ class AristaDriver(DeviceDriver):
                 vrf=request_data)
         if request_data and len(results) != 1:
             raise exc.ObjectNotFound()
-        return results
+        elif request_data and len(results) == 1:
+            return results[0]
+        else:
+            return results
 
     def _vrf_create(self, request_data: an_vrf.VRF) -> an_vrf.VRF:
         if self._vrf_exists(request_data.name):
