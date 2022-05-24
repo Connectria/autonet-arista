@@ -53,7 +53,7 @@ class AristaDriver(DeviceDriver):
         Returns the VXLAN object it exists, otherwise returns False.
         """
         try:
-            return self._tunnels_vxlan_read(vnid)[0]
+            return self._tunnels_vxlan_read(vnid)
         except exc.ObjectNotFound:
             return False
 
@@ -62,7 +62,7 @@ class AristaDriver(DeviceDriver):
         Returns a VRF object, if it exists, otherwise returns False.
         """
         try:
-            return self._vrf_read(vrf)[0]
+            return self._vrf_read(vrf)
         except exc.ObjectNotFound:
             return False
 
@@ -176,7 +176,7 @@ class AristaDriver(DeviceDriver):
             show_bgp_config, = self._exec_admin('show running-config section bgp')
             commands = vrf_task.generate_create_vrf_commands(request_data, show_bgp_config['output'])
             self._exec_config(commands)
-            return self._vrf_read(request_data.name)[0]
+            return self._vrf_read(request_data.name)
 
     def _vrf_delete(self, request_data: str) -> None:
         vrf = self._vrf_exists(request_data)
