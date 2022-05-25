@@ -217,6 +217,17 @@ class AristaDriver(DeviceDriver):
         self._exec_config(commands)
         return self._bridge_vlan_read(request_data.id)
 
+    def _bridge_vlan_update(self, request_data: an_vlan.VLAN, update: bool) -> an_vlan.VLAN:
+        if update:
+            if not self._vlan_exists(request_data.id):
+                raise exc.ObjectNotFound()
+            else:
+                commands = vlan_task.generate_vlan_update_commands(vlan=request_data)
+        else:
+            commands = vlan_task.generate_vlan_create_commands(vlan=request_data)
+        self._exec_config(commands)
+        return self._bridge_vlan_read(request_data.id)
+
     def _bridge_vlan_delete(self, request_data: str) -> None:
         if not self._vlan_exists(request_data):
             raise exc.ObjectNotFound

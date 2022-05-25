@@ -60,6 +60,39 @@ def test_generate_create_vlan_commands_errors():
         assert isinstance(e, exc.AutonetException)
 
 
+@pytest.mark.parametrize('test_vlan, expected', [
+    (
+            an_vlan.VLAN(id=71, name='TestCust1-Net1',
+                         bridge_domain=None, admin_enabled=None),
+            [
+                'vlan 71',
+                'state active',
+                'name TestCust1-Net1'
+            ]
+    ),
+    (
+            an_vlan.VLAN(id=71, name=None,
+                         bridge_domain=None, admin_enabled=False),
+            [
+                'vlan 71',
+                'state suspend',
+                'no name'
+            ]
+    )
+])
+def test_generate_update_vlan_commands(test_vlan, expected):
+    commands = vlan_task.generate_vlan_update_commands(test_vlan)
+    assert commands == expected
+
+
+def test_generate_update_vlan_commands_errors():
+    test_vlan = an_vlan.VLAN(id=71, name="Invalid Name",
+                             bridge_domain=None, admin_enabled=False)
+    with pytest.raises(exc.AutonetException) as e:
+        vlan_task.generate_vlan_update_commands(test_vlan)
+        assert isinstance(e, exc.AutonetException)
+
+
 @pytest.mark.parametrize('test_vlan_id, expected', [
     (6, ['no vlan 6']),
     ('88', ['no vlan 88'])
