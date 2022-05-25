@@ -6,12 +6,14 @@ from typing import List, Union
 from autonet_ng.core import exceptions as exc
 from autonet_ng.core.device import AutonetDevice
 from autonet_ng.core.objects import interfaces as an_if
+from autonet_ng.core.objects import vlan as an_vlan
 from autonet_ng.core.objects import vrf as an_vrf
 from autonet_ng.core.objects import vxlan as an_vxlan
 from autonet_ng.drivers.driver import DeviceDriver
 from pyeapi.client import CommandError
 
 from autonet_arista.eos.tasks import interface as if_task
+from autonet_arista.eos.tasks import vlan as vlan_task
 from autonet_arista.eos.tasks import vrf as vrf_task
 from autonet_arista.eos.tasks import vxlan as vxlan_task
 from autonet_arista.eos.const import PHYSICAL_INTERFACE_TYPES, VIRTUAL_INTERFACE_TYPES
@@ -63,6 +65,15 @@ class AristaDriver(DeviceDriver):
         """
         try:
             return self._vrf_read(vrf)
+        except exc.ObjectNotFound:
+            return False
+
+    def _vlan_exists(self, vlan: Union[str, int]) -> Union[an_vlan.VLAN, bool]:
+        """
+        Returns a VLAN object, if it exists, otherwise returns False.
+        """
+        try:
+            return self._bridge_vlan_read(vlan)
         except exc.ObjectNotFound:
             return False
 
@@ -185,4 +196,30 @@ class AristaDriver(DeviceDriver):
         else:
             show_bgp_config, = self._exec_admin('show running-config section bgp')
             commands = vrf_task.generate_delete_vrf_commands(vrf, show_bgp_config['output'])
+            self._exec_config(commands)
+
+    def _bridge_vlan_read(self, request_data: Union[str, int]) -> Union[List[an_vlan.VLAN], an_vlan.VLAN]:
+        commands = ['show vlan']
+        show_vlan, = self._exec_admin(commands)
+        results = vlan_task.get_vlans(show_vlan, vlan_id=request_data)
+
+        if request_data and len(results) != 1:
+            raise exc.ObjectNotFound()
+        elif request_data and len(results) == 1:
+            return results[0]
+        else:
+            return results
+
+    def _bridge_vlan_create(self, request_data: an_vlan.VLAN) -> an_vlan.VLAN:
+        if self._vlan_exists(request_data.id):
+            raise exc.ObjectExists()
+        commands = vlan_task.generate_vlan_create_commands(vlan=request_data)
+        self._exec_config(commands)
+        return self._bridge_vlan_read(request_data.id)
+
+    def _bridge_vlan_delete(self, request_data: str) -> None:
+        if not self._vlan_exists(request_data):
+            raise exc.ObjectNotFound
+        else:
+            commands = vlan_task.generate_vlan_delete_commands(vlan_id=request_data)
             self._exec_config(commands)

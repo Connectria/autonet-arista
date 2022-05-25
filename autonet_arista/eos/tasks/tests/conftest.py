@@ -660,3 +660,174 @@ def test_bgp_config():
             }
         }
     }
+
+
+@pytest.fixture
+def test_show_vlan():
+    # This is a partial data structure.
+    return {
+        'vlans': {
+            '4092': {
+                'status': 'active',
+                'name': 'VLAN4092',
+                'interfaces': {
+                    'Cpu': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Vxlan1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': True
+            },
+            '4091': {
+                'status': 'active',
+                'name': 'VLAN4091',
+                'interfaces': {
+                    'Cpu': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Vxlan1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': True
+            },
+            '4093': {
+                'status': 'active',
+                'name': 'VLAN4093',
+                'interfaces': {
+                    'Cpu': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Vxlan1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': True
+            },
+            '4087': {
+                'status': 'active',
+                'name': 'VLAN4087',
+                'interfaces': {
+                    'Cpu': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Vxlan1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': True
+            },
+            '2301': {
+                'status': 'suspended',
+                'name': 'VLAN2301',
+                'interfaces': {},
+                'dynamic': False
+            },
+            '4094': {
+                'status': 'active',
+                'name': 'VLAN4094',
+                'interfaces': {
+                    'Cpu': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Vxlan1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': True
+            },
+            '1': {
+                'status': 'active',
+                'name': 'default',
+                'interfaces': {
+                    'Ethernet8': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Ethernet9': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'MplsTrunk1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Ethernet7': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Ethernet4': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': False
+            },
+            '71': {
+                'status': 'active',
+                'name': 'TestCust1-Net1',
+                'interfaces': {
+                    'MplsTrunk1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Vxlan1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Ethernet2': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Ethernet3': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Cpu': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': False
+            },
+            '72': {
+                'status': 'active',
+                'name': 'TestCust1-Net2',
+                'interfaces': {
+                    'MplsTrunk1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Vxlan1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Ethernet3': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Port-Channel1': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    },
+                    'Cpu': {
+                        'privatePromoted': False,
+                        'blocked': None
+                    }
+                },
+                'dynamic': False
+            }
+        }
+    }
