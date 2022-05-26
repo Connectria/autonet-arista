@@ -831,3 +831,58 @@ def test_show_vlan():
             }
         }
     }
+
+
+@pytest.fixture
+def test_show_run_port_channel():
+    return '''
+interface Port-Channel1
+   description [an]
+   switchport access vlan 72
+   !
+   evpn ethernet-segment
+      identifier 00be:e9af:003f:6000:0000
+      route-target import be:e9:af:00:3f:60
+   lacp system-id bee9.af00.3fbb
+interface Port-Channel2
+   description [an]
+   switchport access vlan 72
+   !
+   evpn ethernet-segment
+      identifier 00be:e9af:003f:6a00:0000
+interface Port-Channel10
+   description [an]
+   switchport access vlan 72
+    '''
+
+
+@pytest.fixture
+def test_show_port_channel():
+    # This is a partial data structure.
+    return {
+        'numberOfAggregators': 1,
+        'portChannels': {
+            'Port-Channel1': {
+                'protocol': 'lacp',
+                'ports': {
+                    'Ethernet6': {},
+                    'Ethernet5': {}
+                }
+            },
+            'Port-Channel2': {
+                'protocol': 'lacp',
+                'ports': {
+                    'Ethernet2': {},
+                    'Ethernet3': {},
+                    'Ethernet4': {}
+                }
+            },
+            'Port-Channel10': {
+                'protocol': 'lacp',
+                'ports': {
+                    'Ethernet16': {},
+                    'Ethernet15': {}
+                }
+            },
+        }
+    }
