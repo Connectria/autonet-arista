@@ -5,6 +5,23 @@ from autonet_ng.core.objects import vxlan as an_vxlan
 from autonet_arista.eos.tasks import common as common_task
 
 
+@pytest.mark.parametrize('test_name, expected', [
+    ('Port-c22', 'Port-Channel22'),
+    ('e52/1', 'Ethernet52/1'),
+    ('vl101', 'Vlan101'),
+    ('ma1', 'Management1'),
+    ('Tun55', 'Tunnel55')
+])
+def test_get_fq_if_name(test_name, expected):
+    assert common_task.get_fq_if_name(test_name) == expected
+
+
+@pytest.mark.parametrize('test_name', ['v55', 'fake22'])
+def test_get_fq_if_name_error(test_name):
+    with pytest.raises(ValueError) as exc:
+        common_task.get_fq_if_name(test_name)
+
+
 def test_parse_bgp_evpn_vxlan_config(test_bgp_text_config, test_bgp_config):
     cfg = common_task.parse_bgp_vpn_config(test_bgp_text_config)
     assert cfg == test_bgp_config

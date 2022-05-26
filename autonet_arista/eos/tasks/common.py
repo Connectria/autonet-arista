@@ -5,6 +5,33 @@ from autonet_ng.core.objects import vrf as an_vrf
 from typing import Union
 
 
+def get_fq_if_name(if_name: str) -> str:
+    """
+    Returns the fully qualified interface name for the provided
+    shorthand name. For example, "Po22" would evaluate to
+    "Port-Channel22"
+    :param if_name:
+    :return:
+    """
+    match = re.search(r'(?P<if_type>[A-z-]*)(?P<if_id>[\d/]*)', if_name)
+    if_type = match.group('if_type')
+    if_id = match.group('if_id')
+    fq_names = ['Ethernet', 'Loopback', 'Management', 'Port-Channel',
+                'Tunnel', 'Vlan', 'Vxlan']
+    result = None
+    for fq_name in fq_names:
+        # we track if we've matched the entry before to see if the string
+        # passed in is too ambiguous.  EOS does the same thing.
+        matched = fq_name.lower().startswith(if_type.lower())
+        if matched and result:
+            raise ValueError("Provided shorthand name is ambiguous.")
+        if matched:
+            result = f'{fq_name}{if_id}'
+    if result:
+        return result
+    raise ValueError("Could not parse fully qualified interface name.")
+
+
 def parse_bgp_vpn_config(text_config: str) -> dict:
     """
     Parses the textual BGP configuration block into a structured
