@@ -6,6 +6,7 @@ from typing import List, Union
 from autonet_ng.core import exceptions as exc
 from autonet_ng.core.device import AutonetDevice
 from autonet_ng.core.objects import interfaces as an_if
+from autonet_ng.core.objects import lag as an_lag
 from autonet_ng.core.objects import vlan as an_vlan
 from autonet_ng.core.objects import vrf as an_vrf
 from autonet_ng.core.objects import vxlan as an_vxlan
@@ -13,6 +14,7 @@ from autonet_ng.drivers.driver import DeviceDriver
 from pyeapi.client import CommandError
 
 from autonet_arista.eos.tasks import interface as if_task
+from autonet_arista.eos.tasks import lag as lag_task
 from autonet_arista.eos.tasks import vlan as vlan_task
 from autonet_arista.eos.tasks import vrf as vrf_task
 from autonet_arista.eos.tasks import vxlan as vxlan_task
@@ -170,9 +172,9 @@ class AristaDriver(DeviceDriver):
         commands = ['show vrf', 'show running-config section bgp']
         show_vrf, show_bgp_config = self._exec_admin(commands)
         results = vrf_task.get_vrfs(
-                show_vrf,
-                show_bgp_config['output'],
-                vrf=request_data)
+            show_vrf,
+            show_bgp_config['output'],
+            vrf=request_data)
         if request_data and len(results) != 1:
             raise exc.ObjectNotFound()
         elif request_data and len(results) == 1:
@@ -234,3 +236,27 @@ class AristaDriver(DeviceDriver):
         else:
             commands = vlan_task.generate_vlan_delete_commands(vlan_id=request_data)
             self._exec_config(commands)
+
+    def _interface_lag_read(self, request_data: str) -> Union[List[an_lag.LAG], an_lag.LAG]:
+        commands = [
+            'show port-channel dense',
+            'show running-config section interface Port-Channel'
+        ]
+
+        show_port_channel, show_run_port_channel = self._exec_admin(commands)
+        results = lag_task.get_lags(
+            show_port_channel, show_run_port_channel['output'], lag_name=request_data)
+
+        if request_data and len(results) == 1:
+            return results[0]
+        return results
+
+    def _interface_lag_create(self, request_data: an_lag.LAG) -> an_lag.LAG:
+        commands = lag_task.generate_lag_create_commands(request_data)
+        self._exec_config(commands)
+        return self._interface_lag_read(request_data.name)
+
+    def _interface_lag_delete(self, request_data: str) -> None:
+        lag = self._interface_lag_read(request_data=request_data)
+        commands = lag_task.generate_lag_delete_commands(lag)
+        self._exec_config(commands)
