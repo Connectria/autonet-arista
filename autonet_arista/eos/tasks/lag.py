@@ -5,6 +5,7 @@ from typing import Union
 
 from autonet_arista.eos.tasks import common as common_task
 
+
 def format_esi(esi: str) -> str:
     """
     Parse the ESI format provided by Autonet into the format acceptable to
@@ -107,7 +108,7 @@ def generate_lag_create_commands(lag: an_lag.LAG) -> [str]:
     :return:
     """
     # Create the interface, and it's ESI if provided.
-    commands =[f'interface {lag.name}']
+    commands = [f'interface {lag.name}']
     if lag.evpn_esi:
         commands += [
             'evpn ethernet-segment',
