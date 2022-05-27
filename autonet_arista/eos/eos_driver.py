@@ -256,6 +256,16 @@ class AristaDriver(DeviceDriver):
         self._exec_config(commands)
         return self._interface_lag_read(request_data.name)
 
+    def _interface_lag_update(self, request_data: an_lag.LAG, update: bool) -> an_lag.LAG:
+        new_lag = request_data
+        old_lag = self._interface_lag_read(new_lag.name)
+        if not update and not old_lag:
+            commands = lag_task.generate_lag_create_commands(new_lag)
+        else:
+            commands = lag_task.generate_lag_update_commands(new_lag, old_lag, update)
+        self._exec_config(commands)
+        return self._interface_lag_read(new_lag.name)
+
     def _interface_lag_delete(self, request_data: str) -> None:
         lag = self._interface_lag_read(request_data=request_data)
         commands = lag_task.generate_lag_delete_commands(lag)

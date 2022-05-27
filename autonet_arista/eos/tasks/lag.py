@@ -135,3 +135,52 @@ def generate_lag_delete_commands(lag: an_lag.LAG) -> [str]:
     commands = [f'default interface {member}' for member in lag.members]
     commands.append(f'no interface {lag.name}')
     return commands
+
+
+def generate_lag_update_commands(new_lag: an_lag.LAG, old_lag: an_lag.LAG, update: bool) -> [str]:
+    """
+    Generates a list of commands to update a given lag from its current
+    state to the requested state.
+    :param new_lag: The requested `LAG` object.
+    :param old_lag: The existing version of the `LAG` object to be
+                    modified.
+    :param update: True if update operation, and False for a replace
+                   operation.
+    :return:
+    """
+    # Regenerate the new_lag.members with fully qualified names so
+    # that they may be compared with the fully qualified names that
+    # will be present in old_lag.members.
+    if new_lag.members:
+        new_lag.members = [common_task.get_fq_if_name(member)
+                           for member in new_lag.members]
+    commands = []
+    # Take care of destroying any member configuration that's no
+    # longer going to be required.
+    if not update:
+        # Generate a list of members to be removed.
+        new_members = new_lag.members or []
+        remove_members = [member for member in old_lag.members
+                          if member not in new_members]
+        commands += [f'default interface {member}' for member in remove_members]
+
+    # Now enter into the Port-Channel configuration block.
+    commands.append(f'interface {new_lag.name}')
+
+    # Handle ESI set or unset, as required.
+    if not update and new_lag.evpn_esi is None:
+        commands.append('no evpn ethernet-segment')
+    if new_lag.evpn_esi:
+        commands.append('evpn ethernet-segment')
+        commands.append(f'identifier {format_esi(new_lag.evpn_esi)}')
+
+    # And finally add new interfaces.
+    lag_id = parse_lag_id(new_lag.name)
+    if new_lag.members:
+        for member in new_lag.members:
+            if member not in old_lag.members:
+                commands += [
+                    f'interface {member}',
+                    f'channel-group {lag_id} mode active'
+                ]
+    return commands
