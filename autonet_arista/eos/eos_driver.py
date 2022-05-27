@@ -86,7 +86,13 @@ class AristaDriver(DeviceDriver):
             show_interfaces_command += f" {request_data}"
         show_commands = (show_interfaces_command, 'show interfaces vlans',
                          'show vrf', 'show port-channel detailed')
-        interface_data = self._exec_admin(show_commands)
+
+        try:
+            interface_data = self._exec_admin(show_commands)
+        # Handle interface not found gracefully.
+        except CommandError:
+            return []
+
         for _, eos_interface in interface_data[0]['interfaces'].items():
             if eos_interface['hardware'] \
                     not in PHYSICAL_INTERFACE_TYPES + VIRTUAL_INTERFACE_TYPES \
@@ -96,33 +102,19 @@ class AristaDriver(DeviceDriver):
             interfaces.append(if_task.get_interface_object(
                 eos_interface, *interface_data[1:]))
 
-        if request_data and len(interfaces) != 1:
-            raise exc.ObjectNotFound()
-        else:
-            return interfaces[0] if request_data else interfaces
+        return interfaces[0] if request_data else interfaces
 
     def _interface_create(self, request_data: an_if.Interface) -> an_if.Interface:
-        if self._interface_exists(request_data.name):
-            raise exc.ObjectExists
-
         commands = if_task.generate_interface_commands(request_data)
         self._exec_config(commands)
-
         return self._interface_read(request_data.name)
 
     def _interface_update(self, request_data: an_if.Interface, update) -> an_if.Interface:
-        if not self._interface_exists(request_data.name):
-            raise exc.ObjectNotFound
-
         commands = if_task.generate_interface_commands(request_data, update=update)
         self._exec_config(commands)
-
         return self._interface_read(request_data.name)
 
     def _interface_delete(self, request_data: str):
-        if not self._interface_exists(request_data):
-            raise exc.ObjectNotFound
-
         commands = if_task.generate_delete_commands(interface_name=request_data)
         self._exec_config(commands)
 
@@ -135,17 +127,12 @@ class AristaDriver(DeviceDriver):
             show_bgp_config['output'],
             vnid=vnid)
 
-        if request_data and len(results) != 1:
-            raise exc.ObjectNotFound()
-        elif request_data and len(results) == 1:
+        if request_data and len(results) == 1:
             return results[0]
         else:
             return results
 
     def _tunnels_vxlan_create(self, request_data: an_vxlan.VXLAN) -> an_vxlan.VXLAN:
-        if self._vxlan_exists(request_data.id):
-            raise exc.ObjectExists
-
         # Config needs to be done in two stages.  First the tunnel itself is
         # created, which will trigger the device to allocate resources for it.
         # Once those resources are allocated, they are discovered, and then
@@ -162,8 +149,6 @@ class AristaDriver(DeviceDriver):
 
     def _tunnels_vxlan_delete(self, request_data: str):
         vxlan = self._vxlan_exists(request_data)
-        if not vxlan:
-            raise exc.ObjectNotFound()
         show_bgp_config, = self._exec_admin('show running-config section bgp')
         commands = vxlan_task.generate_vxlan_delete_commands(vxlan, show_bgp_config['output'])
         self._exec_config(commands)
@@ -175,67 +160,49 @@ class AristaDriver(DeviceDriver):
             show_vrf,
             show_bgp_config['output'],
             vrf=request_data)
-        if request_data and len(results) != 1:
-            raise exc.ObjectNotFound()
-        elif request_data and len(results) == 1:
+        if request_data and len(results) == 1:
             return results[0]
         else:
             return results
 
     def _vrf_create(self, request_data: an_vrf.VRF) -> an_vrf.VRF:
-        if self._vrf_exists(request_data.name):
-            raise exc.ObjectExists()
-        else:
-            show_bgp_config, = self._exec_admin('show running-config section bgp')
-            commands = vrf_task.generate_create_vrf_commands(request_data, show_bgp_config['output'])
-            self._exec_config(commands)
-            return self._vrf_read(request_data.name)
+        show_bgp_config, = self._exec_admin('show running-config section bgp')
+        commands = vrf_task.generate_create_vrf_commands(request_data, show_bgp_config['output'])
+        self._exec_config(commands)
+        return self._vrf_read(request_data.name)
 
     def _vrf_delete(self, request_data: str) -> None:
         vrf = self._vrf_exists(request_data)
-        if not vrf:
-            raise exc.ObjectNotFound()
-        else:
-            show_bgp_config, = self._exec_admin('show running-config section bgp')
-            commands = vrf_task.generate_delete_vrf_commands(vrf, show_bgp_config['output'])
-            self._exec_config(commands)
+        show_bgp_config, = self._exec_admin('show running-config section bgp')
+        commands = vrf_task.generate_delete_vrf_commands(vrf, show_bgp_config['output'])
+        self._exec_config(commands)
 
     def _bridge_vlan_read(self, request_data: Union[str, int]) -> Union[List[an_vlan.VLAN], an_vlan.VLAN]:
         commands = ['show vlan']
         show_vlan, = self._exec_admin(commands)
         results = vlan_task.get_vlans(show_vlan, vlan_id=request_data)
 
-        if request_data and len(results) != 1:
-            raise exc.ObjectNotFound()
-        elif request_data and len(results) == 1:
+        if request_data and len(results) == 1:
             return results[0]
         else:
             return results
 
     def _bridge_vlan_create(self, request_data: an_vlan.VLAN) -> an_vlan.VLAN:
-        if self._vlan_exists(request_data.id):
-            raise exc.ObjectExists()
         commands = vlan_task.generate_vlan_create_commands(vlan=request_data)
         self._exec_config(commands)
         return self._bridge_vlan_read(request_data.id)
 
     def _bridge_vlan_update(self, request_data: an_vlan.VLAN, update: bool) -> an_vlan.VLAN:
         if update:
-            if not self._vlan_exists(request_data.id):
-                raise exc.ObjectNotFound()
-            else:
-                commands = vlan_task.generate_vlan_update_commands(vlan=request_data)
+            commands = vlan_task.generate_vlan_update_commands(vlan=request_data)
         else:
             commands = vlan_task.generate_vlan_create_commands(vlan=request_data)
         self._exec_config(commands)
         return self._bridge_vlan_read(request_data.id)
 
     def _bridge_vlan_delete(self, request_data: str) -> None:
-        if not self._vlan_exists(request_data):
-            raise exc.ObjectNotFound
-        else:
-            commands = vlan_task.generate_vlan_delete_commands(vlan_id=request_data)
-            self._exec_config(commands)
+        commands = vlan_task.generate_vlan_delete_commands(vlan_id=request_data)
+        self._exec_config(commands)
 
     def _interface_lag_read(self, request_data: str) -> Union[List[an_lag.LAG], an_lag.LAG]:
         commands = [
