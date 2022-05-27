@@ -10,13 +10,11 @@ with open(here + '/autonet_arista/__version__.py', 'r') as f:
     exec(f.read(), about)
 
 install_requires = [
-    'requests'
+    'pyeapi'
 ]
 
 test_requires = install_requires + [
-    'responses',
     'pytest',
-    'pytest-responses'
 ]
 
 setuptools.setup(
