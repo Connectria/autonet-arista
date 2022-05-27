@@ -1,2 +1,2 @@
 pyeapi>=0.8.4
-https://github.com/Connectria/autonet-ng
+#https://github.com/Connectria/autonet-ng
