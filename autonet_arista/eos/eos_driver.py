@@ -9,7 +9,7 @@ from autonet.core.objects import lag as an_lag
 from autonet.core.objects import vlan as an_vlan
 from autonet.core.objects import vrf as an_vrf
 from autonet.core.objects import vxlan as an_vxlan
-from autonet.drivers.driver import DeviceDriver
+from autonet.drivers.device.driver import DeviceDriver
 from pyeapi.client import CommandError
 
 from autonet_arista.eos.tasks import interface as if_task
