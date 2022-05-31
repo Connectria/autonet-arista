@@ -3,7 +3,6 @@ import pyeapi
 
 from typing import List, Union
 
-from autonet.core import exceptions as exc
 from autonet.core.device import AutonetDevice
 from autonet.core.objects import interfaces as an_if
 from autonet.core.objects import lag as an_lag
