@@ -1,8 +1,8 @@
 import re
 from typing import Union
 
-from autonet_ng.core.objects import interfaces as an_if
-from autonet_ng.util import config_string
+from autonet.core.objects import interfaces as an_if
+from autonet.util import config_string
 
 from autonet_arista.eos.const import DESCRIPTION_TAG, SPEED_DUPLEX_MAP, VIRTUAL_INTERFACE_TYPES
 from autonet_arista.eos.exceptions import MixedAnycastUnicastError, NotSwitchport

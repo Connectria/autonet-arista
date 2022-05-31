@@ -10,7 +10,8 @@ with open(here + '/autonet_arista/__version__.py', 'r') as f:
     exec(f.read(), about)
 
 install_requires = [
-    'pyeapi'
+    'autonet-api',
+    'pyeapi>=0.8.4'
 ]
 
 test_requires = install_requires + [
@@ -18,7 +19,7 @@ test_requires = install_requires + [
 ]
 
 setuptools.setup(
-    name="autonet_arista",
+    name="autonet-arista",
     version=about['__version__'],
     author="Ken Vondersaar",
     author_email="kvondersaar@connectria.com",
@@ -40,12 +41,12 @@ setuptools.setup(
     ],
     package_dir={"": "./"},
     packages=setuptools.find_packages(where='./'),
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=install_requires,
     test_requires=test_requires,
     test_suite='pytest',
     exclude_package_data={'': ['*/tests/*']},
     entry_points={
-        'autonet_ng.drivers': ['eos = autonet_arista.eos.eos_driver:AristaDriver']
+        'autonet.drivers': ['eos = autonet_arista.eos.eos_driver:AristaDriver']
     }
 )

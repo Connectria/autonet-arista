@@ -1,7 +1,7 @@
 import pytest
 
-from autonet_ng.core import exceptions as exc
-from autonet_ng.core.objects import vlan as an_vlan
+from autonet.core import exceptions as exc
+from autonet.core.objects import vlan as an_vlan
 
 from autonet_arista.eos.tasks import vlan as vlan_task
 

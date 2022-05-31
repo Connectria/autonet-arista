@@ -1,7 +1,7 @@
 import ipaddress
 import pytest
 
-from autonet_ng.core.objects import interfaces as an_if
+from autonet.core.objects import interfaces as an_if
 
 TEST_INTERFACE_1 = an_if.Interface(
     name='Loopback5', mode='routed', description='A test loopback',

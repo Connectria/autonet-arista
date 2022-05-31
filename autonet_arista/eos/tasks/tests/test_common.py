@@ -1,6 +1,6 @@
 import pytest
 
-from autonet_ng.core.objects import vxlan as an_vxlan
+from autonet.core.objects import vxlan as an_vxlan
 
 from autonet_arista.eos.tasks import common as common_task
 

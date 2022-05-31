@@ -1,4 +1,4 @@
-from autonet_ng.core import exceptions as exc
+from autonet.core import exceptions as exc
 
 
 class MixedAnycastUnicastError(exc.DriverRequestError):
