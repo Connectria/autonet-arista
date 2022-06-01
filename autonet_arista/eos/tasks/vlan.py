@@ -2,8 +2,8 @@ import re
 
 from typing import Union
 
-from autonet_ng.core import exceptions as exc
-from autonet_ng.core.objects import vlan as an_vlan
+from autonet.core import exceptions as exc
+from autonet.core.objects import vlan as an_vlan
 
 
 def verify_vlan_name(vlan_name: str) -> bool:

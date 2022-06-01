@@ -1,6 +1,6 @@
 import re
 
-from autonet_ng.core.objects import lag as an_lag
+from autonet.core.objects import lag as an_lag
 from typing import Union
 
 from autonet_arista.eos.tasks import common as common_task

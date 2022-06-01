@@ -1,6 +1,6 @@
 import pytest
 
-from autonet_ng.core.objects import lag as an_lag
+from autonet.core.objects import lag as an_lag
 
 from autonet_arista.eos.tasks import lag as task_lag
 

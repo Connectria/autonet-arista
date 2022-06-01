@@ -1,6 +1,6 @@
 import pytest
 
-from autonet_ng.core.objects import vrf as an_vrf
+from autonet.core.objects import vrf as an_vrf
 
 from autonet_arista.eos.tasks import vrf as vrf_task
 

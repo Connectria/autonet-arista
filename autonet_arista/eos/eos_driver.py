@@ -3,14 +3,13 @@ import pyeapi
 
 from typing import List, Union
 
-from autonet_ng.core import exceptions as exc
-from autonet_ng.core.device import AutonetDevice
-from autonet_ng.core.objects import interfaces as an_if
-from autonet_ng.core.objects import lag as an_lag
-from autonet_ng.core.objects import vlan as an_vlan
-from autonet_ng.core.objects import vrf as an_vrf
-from autonet_ng.core.objects import vxlan as an_vxlan
-from autonet_ng.drivers.driver import DeviceDriver
+from autonet.core.device import AutonetDevice
+from autonet.core.objects import interfaces as an_if
+from autonet.core.objects import lag as an_lag
+from autonet.core.objects import vlan as an_vlan
+from autonet.core.objects import vrf as an_vrf
+from autonet.core.objects import vxlan as an_vxlan
+from autonet.drivers.device.driver import DeviceDriver
 from pyeapi.client import CommandError
 
 from autonet_arista.eos.tasks import interface as if_task
@@ -42,42 +41,6 @@ class AristaDriver(DeviceDriver):
             logging.exception(e)
             self._eapi.abort()
         return
-
-    def _interface_exists(self, interface_name) -> bool:
-        try:
-            self._exec_admin(f'show interfaces {interface_name}')
-            return True
-        except CommandError as e:
-            if e.command_error == 'Interface does not exist':
-                return False
-            raise exc.AutonetException("Could not determine if interface exists.")
-
-    def _vxlan_exists(self, vnid: Union[int, str]) -> Union[an_vxlan.VXLAN, bool]:
-        """
-        Returns the VXLAN object it exists, otherwise returns False.
-        """
-        try:
-            return self._tunnels_vxlan_read(vnid)
-        except exc.ObjectNotFound:
-            return False
-
-    def _vrf_exists(self, vrf: str) -> Union[an_vrf.VRF, bool]:
-        """
-        Returns a VRF object, if it exists, otherwise returns False.
-        """
-        try:
-            return self._vrf_read(vrf)
-        except exc.ObjectNotFound:
-            return False
-
-    def _vlan_exists(self, vlan: Union[str, int]) -> Union[an_vlan.VLAN, bool]:
-        """
-        Returns a VLAN object, if it exists, otherwise returns False.
-        """
-        try:
-            return self._bridge_vlan_read(vlan)
-        except exc.ObjectNotFound:
-            return False
 
     def _interface_read(self, request_data: str = None) -> Union[List[an_if.Interface], an_if.Interface]:
         interfaces = []
@@ -148,7 +111,7 @@ class AristaDriver(DeviceDriver):
         return self._tunnels_vxlan_read(str(request_data.id))
 
     def _tunnels_vxlan_delete(self, request_data: str):
-        vxlan = self._vxlan_exists(request_data)
+        vxlan = self._tunnels_vxlan_read(request_data)
         show_bgp_config, = self._exec_admin('show running-config section bgp')
         commands = vxlan_task.generate_vxlan_delete_commands(vxlan, show_bgp_config['output'])
         self._exec_config(commands)
@@ -172,7 +135,7 @@ class AristaDriver(DeviceDriver):
         return self._vrf_read(request_data.name)
 
     def _vrf_delete(self, request_data: str) -> None:
-        vrf = self._vrf_exists(request_data)
+        vrf = self._vrf_read(request_data)
         show_bgp_config, = self._exec_admin('show running-config section bgp')
         commands = vrf_task.generate_delete_vrf_commands(vrf, show_bgp_config['output'])
         self._exec_config(commands)

@@ -1,6 +1,6 @@
 import pytest
 
-from autonet_ng.core.objects import interfaces as an_if
+from autonet.core.objects import interfaces as an_if
 
 from autonet_arista.eos.const import DESCRIPTION_TAG
 from autonet_arista.eos.tasks import interface as if_tasks

@@ -1,7 +1,7 @@
 import re
 
-from autonet_ng.core.objects import vxlan as an_vxlan
-from autonet_ng.core.objects import vrf as an_vrf
+from autonet.core.objects import vxlan as an_vxlan
+from autonet.core.objects import vrf as an_vrf
 from typing import Union
 
 

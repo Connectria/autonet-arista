@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
-from config_engine.__version__ import __version__
+from autonet_arista.__version__ import __version__
 
 # -- Project information -----------------------------------------------------
 

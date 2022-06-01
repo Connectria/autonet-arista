@@ -1,7 +1,5 @@
 import pytest
 
-from autonet_ng.core.objects import interfaces as an_if
-
 from autonet_arista.eos import util
 
 
