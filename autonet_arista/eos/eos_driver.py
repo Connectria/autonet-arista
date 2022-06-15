@@ -37,6 +37,7 @@ class AristaDriver(DeviceDriver):
             self._eapi.configure_session()
             self._eapi.config(commands)
             self._eapi.commit()
+            self._eapi.run_commands('copy running-config startup-config')
         except Exception as e:
             logging.exception(e)
             self._eapi.abort()
