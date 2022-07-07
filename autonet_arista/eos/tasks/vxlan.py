@@ -107,7 +107,15 @@ def generate_l2_vxlan_evpn_commands(vxlan: an_vxlan.VXLAN, show_int_vxlan: dict,
     """
     if vxlan.route_distinguisher == 'auto':
         vxlan.route_distinguisher = f'{bgp_config["rid"]}:{vxlan.bound_object_id}'
-    import_rt_cmds, export_rt_cmds = common_task.generate_rt_commands(vxlan, bgp_config['asn'])
+    auto_rt = f"{bgp_config['asn']}:{vxlan.id}"
+    vxlan.import_targets = [auto_rt if rt == 'auto' else rt
+                            for rt in vxlan.import_targets]
+    vxlan.export_targets = [auto_rt if rt == 'auto' else rt
+                            for rt in vxlan.export_targets]
+    import_rt_cmds = [f"route-target import {rt}"
+                      for rt in vxlan.import_targets]
+    export_rt_cmds = [f"route-target export {rt}"
+                      for rt in vxlan.export_targets]
     return [
                f'router bgp {bgp_config["asn"]}',
                f'vlan {vxlan.bound_object_id}',

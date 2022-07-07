@@ -89,8 +89,8 @@ def test_generate_vxlan_commands(test_vxlan, expected):
          'vlan 72',
          'redistribute learned',
          'rd 198.18.0.101:72',
-         'route-target import evpn 65002:70002',
-         'route-target export evpn 65002:70002'
+         'route-target import 65002:70002',
+         'route-target export 65002:70002'
      ]),
     (an_vxlan.VXLAN(
         id=70001, layer=2, import_targets=['65002:70005', '65002:70001'],
@@ -101,9 +101,9 @@ def test_generate_vxlan_commands(test_vxlan, expected):
          'vlan 71',
          'redistribute learned',
          'rd 198.18.0.1:5',
-         'route-target import evpn 65002:70005',
-         'route-target import evpn 65002:70001',
-         'route-target export evpn 65002:70005'
+         'route-target import 65002:70005',
+         'route-target import 65002:70001',
+         'route-target export 65002:70005'
      ]),
     (an_vxlan.VXLAN(
         id=70001, layer=2, import_targets=['65002:70005', 'auto'],
@@ -114,10 +114,10 @@ def test_generate_vxlan_commands(test_vxlan, expected):
          'vlan 71',
          'redistribute learned',
          'rd 198.18.0.1:5',
-         'route-target import evpn 65002:70005',
-         'route-target import evpn 65002:70001',
-         'route-target export evpn 65002:70005',
-         'route-target export evpn 65002:70001'
+         'route-target import 65002:70005',
+         'route-target import 65002:70001',
+         'route-target export 65002:70005',
+         'route-target export 65002:70001'
      ])
 ])
 def test_generate_l2_vxlan_evpn_commands(
@@ -191,8 +191,8 @@ def test_generate_l3_vxlan_evpn_commands(
          'vlan 72',
          'redistribute learned',
          'rd 198.18.0.101:72',
-         'route-target import evpn 65002:70002',
-         'route-target export evpn 65002:70002'
+         'route-target import 65002:70002',
+         'route-target export 65002:70002'
      ]),
     (an_vxlan.VXLAN(
         id=70001, layer=2, import_targets=['65002:70005', '65002:70002'],
@@ -203,9 +203,9 @@ def test_generate_l3_vxlan_evpn_commands(
          'vlan 71',
          'redistribute learned',
          'rd 198.18.0.1:5',
-         'route-target import evpn 65002:70005',
-         'route-target import evpn 65002:70002',
-         'route-target export evpn 65002:70005'
+         'route-target import 65002:70005',
+         'route-target import 65002:70002',
+         'route-target export 65002:70005'
      ]),
     (an_vxlan.VXLAN(
         id=70001, layer=2, import_targets=['65002:70005', 'auto'],
@@ -216,10 +216,10 @@ def test_generate_l3_vxlan_evpn_commands(
          'vlan 71',
          'redistribute learned',
          'rd 198.18.0.1:5',
-         'route-target import evpn 65002:70005',
-         'route-target import evpn 65002:70001',
-         'route-target export evpn 65002:70005',
-         'route-target export evpn 65002:70001'
+         'route-target import 65002:70005',
+         'route-target import 65002:70001',
+         'route-target export 65002:70005',
+         'route-target export 65002:70001'
      ]),
     (an_vxlan.VXLAN(
         id=20000, layer=3, import_targets=['auto'], export_targets=['auto'],
