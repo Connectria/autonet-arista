@@ -1,8 +1,8 @@
 import logging
-import pyeapi
 
 from typing import List, Union
 
+from autonet.config import config
 from autonet.core.device import AutonetDevice
 from autonet.core.objects import interfaces as an_if
 from autonet.core.objects import lag as an_lag
@@ -10,7 +10,8 @@ from autonet.core.objects import vlan as an_vlan
 from autonet.core.objects import vrf as an_vrf
 from autonet.core.objects import vxlan as an_vxlan
 from autonet.drivers.device.driver import DeviceDriver
-from pyeapi.client import CommandError
+from conf_engine.options import BooleanOption, StringOption
+from pyeapi.client import CommandError, HttpsEapiConnection, Node
 
 from autonet_arista.eos.tasks import interface as if_task
 from autonet_arista.eos.tasks import lag as lag_task
@@ -19,14 +20,36 @@ from autonet_arista.eos.tasks import vrf as vrf_task
 from autonet_arista.eos.tasks import vxlan as vxlan_task
 from autonet_arista.eos.const import PHYSICAL_INTERFACE_TYPES, VIRTUAL_INTERFACE_TYPES
 
+arista_opts =[
+    BooleanOption('tls_verify', default=True),
+    StringOption('tls_ciphers', default='DEFAULT')
+]
+config.register_options(arista_opts, 'arista')
+
 
 class AristaDriver(DeviceDriver):
     def __init__(self, device: AutonetDevice):
         super().__init__(device)
-        self._eapi = pyeapi.connect(host=str(self.device.address),
-                                    username=self.device.credentials.username,
-                                    password=self.device.credentials.password,
-                                    return_node=True)
+
+        # For TLS verification, we can check to see if the option is
+        # set in metadata.  If not then we fall back to the value
+        # present in configuration.  Same with TLS cipher list.
+        tls_verify = self.device.metadata.get('tls_verify',
+                                              config.arista.tls_verify)
+        tls_ciphers = self.device.metadata.get('tls_ciphers',
+                                               config.arista.tls_ciphers)
+        connection = HttpsEapiConnection(
+            host=str(self.device.address),
+            username=self.device.credentials.username,
+            password=self.device.credentials.password,
+            enforce_verification=tls_verify)
+        # Set the cipher list that OpenSSL will offer for the
+        # connection. Must be formatted as an OpenSSL cipher list.  See
+        # https://www.openssl.org/docs/man1.1.1/man1/ciphers.html for
+        # more information.
+
+        connection.transport._context.set_ciphers(tls_ciphers)
+        self._eapi = Node(connection)
 
     def _exec_admin(self, *commands):
         results = self._eapi.enable(*commands)
@@ -37,6 +60,7 @@ class AristaDriver(DeviceDriver):
             self._eapi.configure_session()
             self._eapi.config(commands)
             self._eapi.commit()
+            self._eapi.run_commands('copy running-config startup-config')
         except Exception as e:
             logging.exception(e)
             self._eapi.abort()
