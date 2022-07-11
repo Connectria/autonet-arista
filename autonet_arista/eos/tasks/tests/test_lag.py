@@ -14,15 +14,6 @@ def test_format_esi(test_esi, expected):
 
 
 @pytest.mark.parametrize('test_lag_name, expected', [
-    ('Port-Channel1', '1'),
-    ('Port-Channel10', '10'),
-    ('Port-Channel255', '255')
-])
-def test_parse_lag_id(test_lag_name, expected):
-    assert task_lag.parse_lag_id(test_lag_name) == expected
-
-
-@pytest.mark.parametrize('test_lag_name, expected', [
     ('Port-Channel1', '00be:e9af:003f:6000:0000'),
     ('Port-Channel2', '00be:e9af:003f:6a00:0000'),
     ('Port-Channel10', None)

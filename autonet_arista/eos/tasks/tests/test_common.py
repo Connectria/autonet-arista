@@ -16,6 +16,16 @@ def test_get_fq_if_name(test_name, expected):
     assert common_task.get_fq_if_name(test_name) == expected
 
 
+@pytest.mark.parametrize('test_name, expected', [
+    ('Po22', ('Port-Channel', '22')),
+    ('Ethernet55/1', ('Ethernet', '55/1')),
+    ('vl88', ('Vlan', '88')),
+    ('Tun10', ('Tunnel', '10'))
+])
+def test_get_if_parts(test_name, expected):
+    assert common_task.get_if_parts(test_name) == expected
+
+
 @pytest.mark.parametrize('test_name', ['v55', 'fake22'])
 def test_get_fq_if_name_error(test_name):
     with pytest.raises(ValueError) as exc:
