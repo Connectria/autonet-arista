@@ -26,10 +26,10 @@ setuptools.setup(
     description="Network device configuration abstraction API",
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://github.com/Connectria/autonet_arista",
+    url="https://github.com/Connectria/autonet-arista",
     project_urls={
-        "Bug Tracker": "https://github.com/Connectria/autonet_arista",
-        "Documentation": "https://connectria.github.io/autonet_arista",
+        "Bug Tracker": "https://github.com/Connectria/autonet-arista",
+        "Documentation": "https://connectria.github.io/autonet-arista",
     },
     classifiers=[
         "Programming Language :: Python :: 3.9",
