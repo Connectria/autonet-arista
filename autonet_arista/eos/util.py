@@ -5,6 +5,7 @@ import re
 def get_v6_mask_length(addr: str) -> str:
     """
     Returns the prefix length of an IPv6 prefix or address.
+
     :param addr:
     :return:
     """
@@ -20,6 +21,7 @@ def get_v6_mask_length(addr: str) -> str:
 def is_virtual(name: str) -> bool:
     """
     Determine the given interface is a virtual interface type.
+
     :param name: The interface name.
     :return:
     """
@@ -33,6 +35,7 @@ def is_virtual(name: str) -> bool:
 def is_switchport(name: str) -> bool:
     """
     Determine if the given interface supports switchport commands.
+
     :param name: The interface name.
     :return:
     """

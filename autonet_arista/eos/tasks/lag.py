@@ -18,15 +18,6 @@ def format_esi(esi: str) -> str:
     return bytes.fromhex(esi.replace(':', '')).hex(':', bytes_per_sep=2)
 
 
-def parse_lag_id(lag_name: str) -> str:
-    """
-    Parses the port-channel name and returns the ID.
-    :param lag_name:
-    :return:
-    """
-    return re.search(r'Port-Channel(?P<po_id>\d*)$', lag_name).group('po_id')
-
-
 def get_lag_esi(lag_name, show_run_port_channel) -> Union[str, None]:
     """
     Gets the configured EVPN ESI for a given LAG from the textual
@@ -42,7 +33,7 @@ def get_lag_esi(lag_name, show_run_port_channel) -> Union[str, None]:
     if_context_regex = r'interface Port-Channel(?P<po_id>\d*)$'
     es_context_regex = r'evpn ethernet-segment$'
     esi_regex = r'identifier (?P<esi>([0-9abcdef]{4}:){4}[0-9abcdef]{4})$'
-    lag_context = parse_lag_id(lag_name)
+    _, lag_context = common_task.get_if_parts(lag_name)
 
     if_context = None
     evpn_es_context = False
@@ -116,7 +107,7 @@ def generate_lag_create_commands(lag: an_lag.LAG) -> [str]:
         ]
     # Bind member interfaces, if they are passed in.
     if lag.members:
-        lag_id = parse_lag_id(lag.name)
+        _, lag_id = common_task.get_if_parts(lag.name)
         for member in lag.members:
             commands += [
                 f'default interface {member}',
@@ -176,7 +167,7 @@ def generate_lag_update_commands(new_lag: an_lag.LAG, old_lag: an_lag.LAG, updat
         commands.append(f'identifier {format_esi(new_lag.evpn_esi)}')
 
     # And finally add new interfaces.
-    lag_id = parse_lag_id(new_lag.name)
+    _, lag_id = common_task.get_if_parts(new_lag.name)
     if new_lag.members:
         for member in new_lag.members:
             if member not in old_lag.members:

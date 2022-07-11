@@ -2,7 +2,7 @@ import re
 
 from autonet.core.objects import vxlan as an_vxlan
 from autonet.core.objects import vrf as an_vrf
-from typing import Union
+from typing import Tuple, Union
 
 
 def get_fq_if_name(if_name: str) -> str:
@@ -30,6 +30,19 @@ def get_fq_if_name(if_name: str) -> str:
     if result:
         return result
     raise ValueError("Could not parse fully qualified interface name.")
+
+
+def get_if_parts(if_name: str) -> Tuple[str, str]:
+    """
+    Parses an interface name and returns a tuple containing the fully
+    qualified interface type and the identifier.
+
+    :param if_name:
+    :return:
+    """
+    fq_name = get_fq_if_name(if_name)
+    matches = re.search(r'(?P<if_name>\D*)(?P<if_id>[\d/]*)$', fq_name)
+    return matches.group('if_name'), matches.group('if_id')
 
 
 def parse_bgp_vpn_config(text_config: str) -> dict:
